@@ -12,17 +12,16 @@ class User {
     Set<String> skills;
     Availability availability;
     String workload;
+    int status;
 
-    public User(int id, String name, Set<String> skills, Availability availability, String workload) {
+    public User(int id, String name, Set<String> skills, Availability availability, String workload, int status) {
         this.id = id;
         this.name = name;
         this.skills = skills;
-        this.availability = availability;
         this.workload = workload;
-
+        this.availability = availability;
+        this.status = status;
     }
-
-
 
     public boolean hasRequiredSkills(Set<String> requiredSkills) {
         return skills.containsAll(requiredSkills);
@@ -38,12 +37,15 @@ class User {
 
     @Override
     public String toString() {
+        String statusString = (status == 0) ? "Completed" : (status == 1) ? "Processing" : "On Hold";
+
         return "User{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
                 ", skills=" + skills +
                 ", availability=" + availability +
                 ", workload=" + workload +
+                ", status= " + statusString +
                 '}';
     }
 }
@@ -54,17 +56,14 @@ class Task {
     String title;
     String description;
     Set<String> requiredSkills;
-    String workload;
     User assignedUser;
+    int status;
 
-    String status;
-
-    public Task(String title, String description, Set<String> requiredSkills, String workload, String Status) {
+    public Task(String title, String description, Set<String> requiredSkills, int Status) {
         this.id = taskIdCounter++;
         this.title = title;
         this.description = description;
         this.requiredSkills = requiredSkills;
-        this.workload = this.title;
         this.status = Status;
 
     }
@@ -75,14 +74,14 @@ class Task {
 
     @Override
     public String toString() {
+        String statusString = (status == 0) ? "Completed" : (status == 1) ? "Processing" : "On Hold";
         return "Task{" +
                 "id=" + id +
                 ", title='" + title + '\'' +
                 ", description='" + description + '\'' +
                 ", requiredSkills=" + requiredSkills +
-                ", workload=" + workload +
                 ", assignedUser=" + (assignedUser != null ? assignedUser.name : "Unassigned") +
-                ",status="+status+
+                ",status="+ (assignedUser != null ? statusString : "On Hold") +
                 '}';
     }
 }
@@ -90,6 +89,16 @@ class Task {
 public class Main {
     private static final String USER_FILE = "users.txt";
     private static final String TASK_FILE = "tasks.txt";
+    private static Task tasks;
+
+    private static boolean isInteger(String input) {
+        try {
+            Integer.parseInt(input);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -102,54 +111,44 @@ public class Main {
         int choice = 0;
         while (choice != 7) {
             System.out.println("Menu:");
-            System.out.println("1. User Management");
+            System.out.println("1. Worker Management");
             System.out.println("2. Task Management");
             System.out.println("3. Workload Tracking");
-            System.out.println("4. Report");
-            System.out.println("5. Save All Data");
-            System.out.println("6. Exit");
+            System.out.println("4. Exit");
             System.out.println("Enter your choice:");
 
             choice = scanner.nextInt();
-            scanner.nextLine(); // Consume newline
+            scanner.nextLine();
 
             switch (choice) {
                 case 1:
-                    userManagement(scanner, team);
+                    userManagement(scanner, team,tasks);
                     break;
                 case 2:
                     taskManagement(scanner, tasks, team);
                     break;
                 case 3:
-                    // Workload tracking
                     trackWorkload(team);
                     break;
                 case 4:
-                    // Report
-                    break;
-                case 5:
-                    saveAllData(team, tasks);
-                    break;
-                case 6:
                     System.out.println("Exiting...");
                     break;
                 default:
-                    System.out.println("Invalid choice. Please enter a number between 1 and 6.");
+                    System.out.println("Invalid choice. Please enter a number between 1 and 4.");
             }
         }
 
         scanner.close();
     }
-
-    private static void userManagement(Scanner scanner, List<User> team) {
+    private static void userManagement(Scanner scanner, List<User> team, List<Task> task) {
         int choice = 0;
-        while (choice != 5) {
+        while (choice != 6) {
             System.out.println("User Management:");
             System.out.println("1. Add User");
             System.out.println("2. List Users");
-            System.out.println("3. Update Status");
-            System.out.println("4. Update User");
-            System.out.println("5. Delete User");
+            System.out.println("3. Update User");
+            System.out.println("4. Delete User");
+            System.out.println("5. Save User");
             System.out.println("6. Back to Main Menu");
             System.out.println("Enter your choice:");
 
@@ -164,13 +163,14 @@ public class Main {
                     listUsers(team);
                     break;
                 case 3:
-                    updateStatus(scanner, team);
-                    break;
-                case 4:
                     updateUser(scanner, team);
                     break;
-                case 5:
+                case 4:
                     deleteUser(scanner, team);
+                    break;
+                case 5:
+                    saveUsers(team,task);
+                    saveTasks(task);
                     break;
                 case 6:
                     System.out.println("Returning to main menu...");
@@ -181,57 +181,6 @@ public class Main {
         }
     }
 
-    private static void updateStatus(Scanner scanner, List<User> team) {
-        int choice = 0;
-        System.out.println("=================updateStatus===============");
-        System.out.println("Status Option");
-        System.out.println("1. Ready");
-        System.out.println("2. processing");
-        System.out.println("3. Cancel");
-        System.out.println("Enter Choice: ");
-        choice = scanner.nextInt();
-        scanner.nextLine(); // Consume newline
-
-        switch (choice){
-            case 1:
-                upReady(scanner, team);
-                break;
-            case 2:
-
-                break;
-            case 3:
-
-                break;
-            default:
-                System.out.println("Invalid choice. Please enter a number between 1 and 3.");
-        }
-
-    }
-
-    private static void upReady(Scanner scanner, List<User> team) {
-        System.out.println("Enter the ID of the user to update:");
-        int id = scanner.nextInt();
-        scanner.nextLine(); // Consume newline
-        boolean found = false;
-        for (User user : team) {
-            if (user.id == id) {
-                updateStatusData(scanner, user);
-                System.out.println("Status updated successfully.");
-                found = true;
-                break;
-            }
-        }
-        if (!found) {
-            System.out.println("User not found.");
-        }
-    }
-
-    private static void updateStatusData(Scanner scanner, User user) {
-
-        user.availability = Availability.AVAILABLE;
-        user.workload = "null";
-    }
-
     private static void trackWorkload(List<User> team) {
         System.out.println("Workload Tracking:");
         for (User user : team) {
@@ -240,19 +189,17 @@ public class Main {
     }
 
     private static void addUser(Scanner scanner, List<User> team ) {
-        System.out.println("Enter user ID:");
+        System.out.print("Enter user ID:");
         int id = scanner.nextInt();
-        scanner.nextLine(); // Consume newline
-        System.out.println("Enter user name:");
+        scanner.nextLine();
+        System.out.print("Enter user name:");
         String name = scanner.nextLine();
-        System.out.println("Enter user skills (comma-separated):");
+        System.out.print("Enter user skills (comma-separated):");
         String[] skillsArray = scanner.nextLine().split(",");
         Set<String> skills = new HashSet<>(Arrays.asList(skillsArray));
-
-        team.add(new User(id, name, skills, Availability.AVAILABLE, "null"));
+        team.add(new User(id, name, skills, Availability.AVAILABLE, "null", 0));
         System.out.println("User added successfully.");
     }
-
     private static void listUsers(List<User> team) {
         if (team.isEmpty()) {
             System.out.println("No users found.");
@@ -263,60 +210,27 @@ public class Main {
             }
         }
     }
-
-    private static void updateUser(Scanner scanner, List<User> team) {
-        System.out.println("Select update option:");
-        System.out.println("1. Update by ID");
-        System.out.println("2. Update by Name");
-        System.out.println("3. Update Skills");
-        System.out.println("Enter your choice:");
-
-        int updateOption = scanner.nextInt();
-        scanner.nextLine(); // Consume newline
-
-        switch (updateOption) {
-            case 1:
-                updateUserByID(scanner, team);
-                break;
-            case 2:
-                updateUserByName(scanner, team);
-                break;
-            case 3:
-                updateSkills(scanner, team);
-                break;
-            default:
-                System.out.println("Invalid choice. Please enter a number between 1 and 3.");
-        }
-    }
-
-    private static void updateUserByID(Scanner scanner, List<User> team) {
-        System.out.println("Enter the ID of the user to update:");
-        int id = scanner.nextInt();
-        scanner.nextLine(); // Consume newline
+    private static void updateUser(Scanner scanner, List<User> team){
+        System.out.println("Enter the ID or Name of User you want to update:");
+        String keyword = scanner.nextLine();
         boolean found = false;
         for (User user : team) {
-            if (user.id == id) {
-                updateUserData(scanner, user);
-                System.out.println("User updated successfully.");
-                found = true;
-                break;
-            }
-        }
-        if (!found) {
-            System.out.println("User not found.");
-        }
-    }
-
-    private static void updateUserByName(Scanner scanner, List<User> team) {
-        System.out.println("Enter the name of the user to update:");
-        String name = scanner.nextLine();
-        boolean found = false;
-        for (User user : team) {
-            if (user.name.equals(name)) {
-                updateUserData(scanner, user);
-                System.out.println("User updated successfully.");
-                found = true;
-                break;
+            if (isInteger(keyword)) {
+                if (user.id == Integer.parseInt(keyword)) {
+                    System.out.println(user);
+                    updateUserData(scanner, user);
+                    System.out.println("User found successfully.");
+                    found = true;
+                    break;
+                }
+            } else {
+                if (user.name.equals(keyword)) {
+                    System.out.println(user);
+                    System.out.println("User found successfully.");
+                    updateUserData(scanner, user);
+                    found = true;
+                    break;
+                }
             }
         }
         if (!found) {
@@ -325,63 +239,112 @@ public class Main {
     }
 
     private static void updateUserData(Scanner scanner, User user) {
+        System.out.println("Select update option:");
+        System.out.println("1. Update Name");
+        System.out.println("2. Update Skills");
+        System.out.println("3. Update Status");
+        System.out.println("4. Exit");
+        System.out.println("Enter your choice:");
+
+        int updateOption = scanner.nextInt();
+        scanner.nextLine(); // Consume newline
+        switch (updateOption) {
+            case 1:
+                updateUserName(scanner, user);
+                break;
+            case 2:
+                updateUserSkills(scanner, user);
+                break;
+            case 3:
+                updateUserStatus(scanner, user);
+                break;
+            case 4:
+                break;
+            default:
+                System.out.println("Invalid choice. Please enter a number between 1 and 3.");
+        }
+    }
+
+    private static void updateUserName(Scanner scanner, User user) {
+        System.out.println(user.name);
         System.out.println("Enter new user name:");
         user.name = scanner.nextLine();
-        System.out.println("Enter new user skills (comma-separated):");
-        String[] skillsArray = scanner.nextLine().split(",");
-        user.skills = new HashSet<>(Arrays.asList(skillsArray));
+        System.out.println("User skills updated successfully.");
     }
 
-    private static void updateSkills(Scanner scanner, List<User> team) {
-        System.out.println("Enter the ID of the user whose skills you want to update:");
-        int id = scanner.nextInt();
-        scanner.nextLine(); // Consume newline
-        boolean found = false;
-        for (User user : team) {
-            if (user.id == id) {
-                System.out.println("Enter new skills (comma-separated):");
-                String[] newSkillsArray = scanner.nextLine().split(",");
-                user.skills = new HashSet<>(Arrays.asList(newSkillsArray));
-                System.out.println("User skills updated successfully.");
-                found = true;
-                break;
-            }
-        }
-        if (!found) {
-            System.out.println("User not found.");
-        }
+    private static void updateUserStatus(Scanner scanner, User user) {
+        String statusString = (user.status == 0) ? "Completed" : (user.status == 1) ? "Processing" : "On Hold";
+        System.out.println(statusString);
+        System.out.println("0. Completed");
+        System.out.println("1. Processing");
+        System.out.println("2. On Hold");
+        System.out.println("Enter new status value:");
+        user.status = scanner.nextInt();
+
+        System.out.println("User skills updated successfully.");
+
     }
 
+    private static void updateUserSkills(Scanner scanner, User user) {
+        System.out.println(user.skills);
+        System.out.println("Enter new skills (comma-separated):");
+        String[] newSkillsArray = scanner.nextLine().split(",");
+        user.skills = new HashSet<>(Arrays.asList(newSkillsArray));
+        System.out.println("User skills updated successfully.");
+    }
 
-    private static void deleteUser(Scanner scanner, List<User> team) {
-        System.out.println("Enter the ID of the user to delete:");
-        int id = scanner.nextInt();
-        scanner.nextLine(); // Consume newline
+    private static void deleteUser(Scanner scanner, List<User> team){
+        System.out.println("Enter the ID or Name of User you want to update:");
+        String keyword = scanner.nextLine();
         Iterator<User> iterator = team.iterator();
         boolean found = false;
-        while (iterator.hasNext()) {
-            User user = iterator.next();
-            if (user.id == id) {
-                iterator.remove();
-                System.out.println("User deleted successfully.");
-                found = true;
-                break;
+        for (User user : team) {
+            if (isInteger(keyword)) {
+                if (user.id == Integer.parseInt(keyword)) {
+                    iterator.remove();
+                    System.out.println("User deleted successfully.");
+                    found = true;
+                    break;
+                }
+            } else {
+                if (user.name.equals(keyword)) {
+                    iterator.remove();
+                    System.out.println("User deleted successfully.");
+                    found = true;
+                    break;
+                }
             }
         }
         if (!found) {
             System.out.println("User not found.");
+        }
+    }
+
+    private static void saveUsers(List<User> team, List<Task> tasks) {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(USER_FILE))) {
+            for (User user : team) {
+                if (user.status == 0) {
+                    user.availability = Availability.AVAILABLE;
+                }
+                writer.println(user.id + "," + user.name + "," + String.join(";", user.skills) + "," + user.availability + "," + user.workload + "," + user.status);
+            }
+
+            System.out.println("Users saved to file.");
+        } catch (IOException e) {
+            System.out.println("Error saving users to file: " + e.getMessage());
         }
     }
 
     private static void taskManagement(Scanner scanner, List<Task> tasks, List<User> team) {
         int choice = 0;
-        while (choice != 5) {
+        while (choice != 6) {
             System.out.println("Task Management:");
             System.out.println("1. Add Task");
             System.out.println("2. List Tasks");
             System.out.println("3. Update Task");
             System.out.println("4. Delete Task");
-            System.out.println("5. Back to Main Menu");
+            System.out.println("5. Save Task");
+            System.out.println("6. Back to Main Menu");
             System.out.println("Enter your choice:");
 
             choice = scanner.nextInt();
@@ -392,7 +355,7 @@ public class Main {
                     addTask(scanner, tasks, team);
                     break;
                 case 2:
-                    listTasks(tasks);
+                    listTasks(tasks ,team);
                     break;
                 case 3:
                     updateTask(scanner, tasks, team);
@@ -401,6 +364,9 @@ public class Main {
                     deleteTask(scanner, tasks);
                     break;
                 case 5:
+                    saveTasks(tasks);
+                    break;
+                case 6:
                     System.out.println("Returning to main menu...");
                     break;
                 default:
@@ -417,11 +383,8 @@ public class Main {
         System.out.println("Enter required skills (comma-separated):");
         String[] skillsArray = scanner.nextLine().split(",");
         Set<String> requiredSkills = new HashSet<>(Arrays.asList(skillsArray));
-
-        String workload = title;
-
-
-        Task task = new Task(title, description, requiredSkills, workload,);
+        int status = Integer.parseInt("2");
+        Task task = new Task(title, description, requiredSkills, status);
         assignTask(task, team);
         tasks.add(task);
         System.out.println("Task added successfully.");
@@ -431,28 +394,40 @@ public class Main {
         for (User user : team) {
             if (user.hasRequiredSkills(task.requiredSkills) && user.isAvailable()) {
                 user.availability = Availability.BUSY;
+                user.status = Integer.parseInt("1");
                 task.assignToUser(user);
-                user.updateWorkload(task.workload);
+                user.updateWorkload(task.title);
                 break;
             }
         }
     }
 
-    private static void listTasks(List<Task> tasks) {
+    private static void listTasks(List<Task> tasks, List<User> user) {
         if (tasks.isEmpty()) {
             System.out.println("No tasks found.");
         } else {
             System.out.println("List of Tasks:");
+
             for (Task task : tasks) {
+//                    for (User users : user){
+//                        if ( == task.title){
+//                            task.status = users.status;
+//                        }
+//
+//                        break;
+//                    }
                 System.out.println(task);
+
+
             }
+
         }
     }
 
     private static void updateTask(Scanner scanner, List<Task> tasks, List<User> team) {
         System.out.println("Enter the ID of the task to update:");
         int taskId = scanner.nextInt();
-        scanner.nextLine(); // Consume newline
+        scanner.nextLine();
         boolean found = false;
         for (Task task : tasks) {
             if (task.id == taskId) {
@@ -463,8 +438,6 @@ public class Main {
                 System.out.println("Enter new required skills (comma-separated):");
                 String[] skillsArray = scanner.nextLine().split(",");
                 task.requiredSkills = new HashSet<>(Arrays.asList(skillsArray));
-
-                task.workload = task.title;
 
                 assignTask(task, team);
                 System.out.println("Task updated successfully.");
@@ -496,7 +469,6 @@ public class Main {
             System.out.println("Task not found.");
         }
     }
-
     private static void loadUsers(List<User> team) {
         try (Scanner scanner = new Scanner(new File(USER_FILE))) {
             while (scanner.hasNextLine()) {
@@ -507,7 +479,8 @@ public class Main {
                 Set<String> skills = new HashSet<>(Arrays.asList(parts[2].split(";"))); // Assuming skills are separated by semicolons
                 Availability availability = Availability.valueOf(parts[3]);
                 String workload = String.valueOf(parts[4]);
-                team.add(new User(id, name, skills, availability, workload));
+                int status = Integer.parseInt(parts[5]);
+                team.add(new User(id, name, skills, availability, workload, status));
             }
         } catch (FileNotFoundException e) {
             System.out.println("User file not found. Creating new file...");
@@ -522,16 +495,28 @@ public class Main {
                 String[] parts = line.split(",");
                 String title = parts[0];
                 String description = parts[1];
-                Set<String> requiredSkills = new HashSet<>(Arrays.asList(parts[2].split(";"))); // Assuming skills are separated by semicolons
-                String workload = String.valueOf(parts[3]);
-                Task task = new Task(title, description, requiredSkills, workload);
-                int userId = Integer.parseInt(parts[4]);
-                for (User user : team) {
-                    if (user.id == userId) {
-                        task.assignToUser(user);
-                        break;
+                Set<String> requiredSkills = new HashSet<>(Arrays.asList(parts[2].split(";")));
+                int status = Integer.parseInt(parts[4]);
+
+                Task task = new Task(title, description, requiredSkills, status);
+                int userId = Integer.parseInt(parts[3]);
+                for (Task task1 : tasks) {
+                    if (task.status!=0 ) {
+                        for (User user : team) {
+
+
+                            if (user.id == userId) {
+//                                task1.status == user.status
+                                task.assignToUser(user);
+                                break;
+                            }
+
+                        }
                     }
                 }
+
+
+
                 tasks.add(task);
             }
         } catch (FileNotFoundException e) {
@@ -541,26 +526,17 @@ public class Main {
 
 
     private static void saveAllData(List<User> team, List<Task> tasks) {
-        saveUsers(team);
-        saveTasks(tasks);
-    }
 
-    private static void saveUsers(List<User> team) {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(USER_FILE))) {
-            for (User user : team) {
-                writer.println(user.id + "," + user.name + "," + String.join(";", user.skills) + "," + user.availability + "," + user.workload);
-            }
-            System.out.println("Users saved to file.");
-        } catch (IOException e) {
-            System.out.println("Error saving users to file: " + e.getMessage());
-        }
+        saveUsers(team,tasks);
+        saveTasks(tasks);
     }
 
     private static void saveTasks(List<Task> tasks) {
         try (PrintWriter writer = new PrintWriter(new FileWriter(TASK_FILE))) {
             for (Task task : tasks) {
+
                 int userId = task.assignedUser != null ? task.assignedUser.id : -1;
-                writer.println(task.title + "," + task.description + "," + String.join(";", task.requiredSkills) + "," + task.workload + "," + userId);
+                writer.println(task.title + "," + task.description + "," + String.join(";", task.requiredSkills) + "," + userId + "," + task.status);
             }
             System.out.println("Tasks saved to file.");
         } catch (IOException e) {
